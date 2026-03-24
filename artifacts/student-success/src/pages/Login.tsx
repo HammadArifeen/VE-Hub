@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
 import { useAppState } from "@/hooks/use-app-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,16 +11,7 @@ import { Moon, Sun } from "lucide-react";
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const { login, theme, toggleTheme, currentUser } = useAppState();
-  const [, setLocation] = useLocation();
-
-  // Redirect if already logged in
-  if (currentUser) {
-    if (currentUser.role === 'admin') setLocation('/admin');
-    else if (currentUser.role === 'mentor') setLocation('/mentor');
-    else setLocation('/student');
-    return null;
-  }
+  const { login, theme, toggleTheme } = useAppState();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();

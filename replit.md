@@ -23,6 +23,13 @@ A premium SaaS-style academic dashboard at the root path `/`. Built with React +
 - Mentors: `abdelrahman/mentor123`, `fatima/mentor123`
 - Admins: `Musab/CEO123`, `Hammad/Admin123`
 
+**Onboarding System:**
+- Student onboarding (5 steps): Profile/year group → Subject selection → Target grades per subject → Goals (short+long term) → Complete
+- Mentor onboarding (4 steps): Profile/specialty subject → Add students (name + year group) → Add resources (title + type) → Complete
+- All data persisted to localStorage (keys: sf_student_profiles, sf_mentor_profiles, sf_sessions, sf_notes, sf_resources, sf_theme, sf_user)
+- First-time users are gated behind onboarding before they can see their dashboard
+- Admin users skip onboarding and go straight to their dashboard
+
 **Dependencies:** recharts, framer-motion, react-confetti, date-fns, clsx, tailwind-merge
 
 ## Stack

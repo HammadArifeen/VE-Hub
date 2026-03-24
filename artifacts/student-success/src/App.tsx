@@ -4,53 +4,85 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppStateProvider, useAppState } from "@/hooks/use-app-state";
 
-// Pages
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import StudentDashboard from "@/pages/StudentDashboard";
 import MentorDashboard from "@/pages/MentorDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
+import StudentOnboarding from "@/pages/StudentOnboarding";
+import MentorOnboarding from "@/pages/MentorOnboarding";
 
 const queryClient = new QueryClient();
 
-// Route wrapper to handle basic auth checks
-const ProtectedRoute = ({ component: Component, role }: { component: any, role: string }) => {
-  const { currentUser } = useAppState();
-  
-  if (!currentUser) return <Redirect to="/login" />;
-  if (currentUser.role !== role) {
-    if (currentUser.role === 'admin') return <Redirect to="/admin" />;
-    if (currentUser.role === 'mentor') return <Redirect to="/mentor" />;
-    return <Redirect to="/student" />;
-  }
-  
-  return <Component />;
-};
-
 function Router() {
-  const { currentUser } = useAppState();
+  const { currentUser, isOnboardingComplete } = useAppState();
+
+  const roleHome = () => {
+    if (!currentUser) return "/login";
+    if (!isOnboardingComplete(currentUser.id)) return "/onboarding";
+    if (currentUser.role === "admin") return "/admin";
+    if (currentUser.role === "mentor") return "/mentor";
+    return "/student";
+  };
 
   return (
     <Switch>
       <Route path="/">
-        {currentUser ? (
-          currentUser.role === 'admin' ? <Redirect to="/admin" /> :
-          currentUser.role === 'mentor' ? <Redirect to="/mentor" /> :
-          <Redirect to="/student" />
-        ) : (
+        <Redirect to={roleHome()} />
+      </Route>
+
+      <Route path="/login">
+        {currentUser ? <Redirect to={roleHome()} /> : <Login />}
+      </Route>
+
+      <Route path="/onboarding">
+        {!currentUser ? (
           <Redirect to="/login" />
+        ) : isOnboardingComplete(currentUser.id) ? (
+          <Redirect to={roleHome()} />
+        ) : currentUser.role === "student" ? (
+          <StudentOnboarding />
+        ) : currentUser.role === "mentor" ? (
+          <MentorOnboarding />
+        ) : (
+          <Redirect to="/admin" />
         )}
       </Route>
-      <Route path="/login" component={Login} />
+
       <Route path="/student">
-        <ProtectedRoute component={StudentDashboard} role="student" />
+        {!currentUser ? (
+          <Redirect to="/login" />
+        ) : currentUser.role !== "student" ? (
+          <Redirect to={roleHome()} />
+        ) : !isOnboardingComplete(currentUser.id) ? (
+          <Redirect to="/onboarding" />
+        ) : (
+          <StudentDashboard />
+        )}
       </Route>
+
       <Route path="/mentor">
-        <ProtectedRoute component={MentorDashboard} role="mentor" />
+        {!currentUser ? (
+          <Redirect to="/login" />
+        ) : currentUser.role !== "mentor" ? (
+          <Redirect to={roleHome()} />
+        ) : !isOnboardingComplete(currentUser.id) ? (
+          <Redirect to="/onboarding" />
+        ) : (
+          <MentorDashboard />
+        )}
       </Route>
+
       <Route path="/admin">
-        <ProtectedRoute component={AdminDashboard} role="admin" />
+        {!currentUser ? (
+          <Redirect to="/login" />
+        ) : currentUser.role !== "admin" ? (
+          <Redirect to={roleHome()} />
+        ) : (
+          <AdminDashboard />
+        )}
       </Route>
+
       <Route component={NotFound} />
     </Switch>
   );
