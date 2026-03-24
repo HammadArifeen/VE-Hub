@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import {
   AUTH_USERS, ALL_ACHIEVEMENTS,
-  StudentProfile, MentorProfile, Session, Note, Resource, User,
+  StudentProfile, MentorProfile, Session, Note, Resource, User, Notification,
 } from "@/lib/mock-data";
 import { toast } from "@/hooks/use-toast";
 
@@ -17,6 +17,7 @@ interface AppStateContextType {
   sessions: Session[];
   notes: Note[];
   resources: Resource[];
+  notifications: Notification[];
 
   isOnboardingComplete: (userId: string) => boolean;
   completeStudentOnboarding: (data: Omit<StudentProfile, "userId" | "streak" | "xp" | "maxXp" | "achievements" | "onboardingComplete">) => void;
@@ -31,6 +32,8 @@ interface AppStateContextType {
   addSession: (session: Omit<Session, "id">) => void;
   addResource: (resource: Omit<Resource, "id">) => void;
   updateStudentSubjectScore: (userId: string, subjectName: string, current: number) => void;
+  markNotificationRead: (id: string) => void;
+  clearAllNotifications: (userId: string) => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
@@ -43,6 +46,7 @@ const STORAGE_KEYS = {
   sessions: "sf_sessions",
   notes: "sf_notes",
   resources: "sf_resources",
+  notifications: "sf_notifications",
 };
 
 function load<T>(key: string, fallback: T): T {
@@ -75,9 +79,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
 
   const login = (username: string, pass: string): boolean => {
-    const user = AUTH_USERS.find(
-      (u) => u.username === username && u.password === pass
-    );
+    const user = AUTH_USERS.find((u) => u.username === username && u.password === pass);
     if (user) {
       setCurrentUser(user);
       save(STORAGE_KEYS.user, user);
@@ -106,12 +108,37 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [resources, setResources] = useState<Resource[]>(() =>
     load<Resource[]>(STORAGE_KEYS.resources, [])
   );
+  const [notifications, setNotifications] = useState<Notification[]>(() =>
+    load<Notification[]>(STORAGE_KEYS.notifications, [])
+  );
 
+  // Persist to localStorage whenever state changes
   useEffect(() => { save(STORAGE_KEYS.studentProfiles, studentProfiles); }, [studentProfiles]);
   useEffect(() => { save(STORAGE_KEYS.mentorProfiles, mentorProfiles); }, [mentorProfiles]);
   useEffect(() => { save(STORAGE_KEYS.sessions, sessions); }, [sessions]);
   useEffect(() => { save(STORAGE_KEYS.notes, notes); }, [notes]);
   useEffect(() => { save(STORAGE_KEYS.resources, resources); }, [resources]);
+  useEffect(() => { save(STORAGE_KEYS.notifications, notifications); }, [notifications]);
+
+  // Real-time cross-tab sync via storage event
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.sessions) {
+        setSessions(load<Session[]>(STORAGE_KEYS.sessions, []));
+      }
+      if (e.key === STORAGE_KEYS.notifications) {
+        setNotifications(load<Notification[]>(STORAGE_KEYS.notifications, []));
+      }
+      if (e.key === STORAGE_KEYS.notes) {
+        setNotes(load<Note[]>(STORAGE_KEYS.notes, []));
+      }
+      if (e.key === STORAGE_KEYS.resources) {
+        setResources(load<Resource[]>(STORAGE_KEYS.resources, []));
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const isOnboardingComplete = useCallback(
     (userId: string) => {
@@ -123,7 +150,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (user.role === "mentor") {
         return mentorProfiles.some((p) => p.userId === userId && p.onboardingComplete);
       }
-      return true; // admins skip onboarding
+      return true;
     },
     [studentProfiles, mentorProfiles]
   );
@@ -141,10 +168,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       onboardingComplete: true,
       ...data,
     };
-    setStudentProfiles((prev) => {
-      const existing = prev.filter((p) => p.userId !== currentUser.id);
-      return [...existing, profile];
-    });
+    setStudentProfiles((prev) => [...prev.filter((p) => p.userId !== currentUser.id), profile]);
     toast({ title: "Onboarding complete! Welcome to SuccessFlow 🎉" });
   };
 
@@ -157,10 +181,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       onboardingComplete: true,
       ...data,
     };
-    setMentorProfiles((prev) => {
-      const existing = prev.filter((p) => p.userId !== currentUser.id);
-      return [...existing, profile];
-    });
+    setMentorProfiles((prev) => [...prev.filter((p) => p.userId !== currentUser.id), profile]);
     toast({ title: "Onboarding complete! Your mentor dashboard is ready 🎉" });
   };
 
@@ -181,8 +202,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   };
 
   const addNote = (note: Omit<Note, "id">) => {
-    const newNote: Note = { ...note, id: `n${Date.now()}` };
-    setNotes((prev) => [newNote, ...prev]);
+    setNotes((prev) => [{ ...note, id: `n${Date.now()}` }, ...prev]);
     toast({ title: "Note saved ✅" });
   };
 
@@ -198,12 +218,29 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
       )
     );
+
+    // Find mentor display name for the notification message
+    const mentorProfile = mentorProfiles.find((m) => m.userId === session.mentorId);
+    const mentorName = mentorProfile?.displayName
+      ?? AUTH_USERS.find((u) => u.id === session.mentorId)?.name
+      ?? "Your mentor";
+
+    // Create notification for the student
+    const notification: Notification = {
+      id: `notif${Date.now()}`,
+      userId: session.studentId,
+      title: "New session booked!",
+      message: `${mentorName} has scheduled a "${session.type}" session for ${new Date(session.date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.`,
+      link: session.googleClassroomLink,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    setNotifications((prev) => [notification, ...prev]);
     toast({ title: "Session scheduled ✅" });
   };
 
   const addResource = (resource: Omit<Resource, "id">) => {
-    const newResource: Resource = { ...resource, id: `r${Date.now()}` };
-    setResources((prev) => [newResource, ...prev]);
+    setResources((prev) => [{ ...resource, id: `r${Date.now()}` }, ...prev]);
     toast({ title: "Resource added ✅" });
   };
 
@@ -224,16 +261,28 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     toast({ title: "Score updated ✅" });
   };
 
+  const markNotificationRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const clearAllNotifications = (userId: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.userId === userId ? { ...n, read: true } : n))
+    );
+  };
+
   return (
     <AppStateContext.Provider
       value={{
         theme, toggleTheme,
         currentUser, login, logout,
-        studentProfiles, mentorProfiles, sessions, notes, resources,
+        studentProfiles, mentorProfiles, sessions, notes, resources, notifications,
         isOnboardingComplete, completeStudentOnboarding, completeMentorOnboarding,
         getStudentProfile, getMentorProfile,
         updateStudentTargets, addNote, deleteNote, addSession, addResource,
-        updateStudentSubjectScore,
+        updateStudentSubjectScore, markNotificationRead, clearAllNotifications,
       }}
     >
       {children}

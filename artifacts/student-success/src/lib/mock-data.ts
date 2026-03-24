@@ -29,7 +29,18 @@ export interface Session {
   mentorId: string;
   date: string;
   type: string;
+  googleClassroomLink: string;
   status: "upcoming" | "completed";
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  link: string;
+  read: boolean;
+  createdAt: string;
 }
 
 export interface Note {

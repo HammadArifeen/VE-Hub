@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { useAppState } from "@/hooks/use-app-state";
+import { AUTH_USERS } from "@/lib/mock-data";
 import {
   Home, BookOpen, Calendar as CalendarIcon, Trophy, MessageSquare,
   Folder, Settings, ChevronLeft, ChevronRight, Plus, Target, CheckCircle2,
-  Sun, Moon, LogOut, Send, FileText, Video, ClipboardList, Users, Sparkles
+  Sun, Moon, LogOut, Send, FileText, Video, ClipboardList, Users, Sparkles, ExternalLink
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -49,6 +50,7 @@ export default function MentorDashboard() {
   const [sessionDate, setSessionDate] = useState("");
   const [sessionTime, setSessionTime] = useState("");
   const [sessionType, setSessionType] = useState("One-on-one");
+  const [sessionLink, setSessionLink] = useState("");
   const [isSessionDialogOpen, setIsSessionDialogOpen] = useState(false);
 
   const [newResTitle, setNewResTitle] = useState("");
@@ -59,6 +61,7 @@ export default function MentorDashboard() {
 
   const mentorProfile = getMentorProfile(currentUser?.id ?? "");
   const myStudents = mentorProfile?.studentNames ?? [];
+  const registeredStudents = AUTH_USERS.filter((u) => u.role === "student");
 
   useEffect(() => {
     if (myStudents.length > 0 && !activeStudentId) {
@@ -93,17 +96,19 @@ export default function MentorDashboard() {
 
   const handleScheduleSession = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sessionStudentId || !sessionDate || !sessionTime) return;
+    if (!sessionStudentId || !sessionDate || !sessionTime || !sessionLink) return;
     addSession({
       studentId: sessionStudentId,
       mentorId: currentUser.id,
       date: `${sessionDate}T${sessionTime}:00`,
       type: sessionType,
+      googleClassroomLink: sessionLink,
       status: "upcoming",
     });
     setSessionStudentId("");
     setSessionDate("");
     setSessionTime("");
+    setSessionLink("");
     setIsSessionDialogOpen(false);
   };
 
@@ -443,11 +448,17 @@ export default function MentorDashboard() {
                       <label className="text-sm font-medium">Student</label>
                       <Select value={sessionStudentId} onValueChange={setSessionStudentId}>
                         <SelectTrigger><SelectValue placeholder="Select student" /></SelectTrigger>
-                        <SelectContent>{myStudents.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                        <SelectContent>
+                          {registeredStudents.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2"><label className="text-sm font-medium">Date</label><Input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} required /></div>
-                    <div className="space-y-2"><label className="text-sm font-medium">Time</label><Input type="time" value={sessionTime} onChange={(e) => setSessionTime(e.target.value)} required /></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2"><label className="text-sm font-medium">Date</label><Input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} required /></div>
+                      <div className="space-y-2"><label className="text-sm font-medium">Time</label><Input type="time" value={sessionTime} onChange={(e) => setSessionTime(e.target.value)} required /></div>
+                    </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Session Type</label>
                       <Select value={sessionType} onValueChange={setSessionType}>
@@ -460,7 +471,28 @@ export default function MentorDashboard() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button type="submit" className="w-full bg-gradient-premium text-white">Confirm Session</Button>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        Google Classroom Link
+                        <span className="text-[10px] font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">Required</span>
+                      </label>
+                      <Input
+                        type="url"
+                        value={sessionLink}
+                        onChange={(e) => setSessionLink(e.target.value)}
+                        placeholder="https://classroom.google.com/..."
+                        required
+                        className="text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">Students will receive this link to join the session.</p>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={!sessionStudentId || !sessionDate || !sessionTime || !sessionLink}
+                      className="w-full bg-gradient-premium text-white"
+                    >
+                      Confirm Session & Notify Student
+                    </Button>
                   </form>
                 </DialogContent>
               </Dialog>
@@ -475,22 +507,31 @@ export default function MentorDashboard() {
                 </Card>
               ) : (
                 mySessions.map((session) => {
-                  const student = myStudents.find((s) => s.id === session.studentId);
+                  const student = registeredStudents.find((s) => s.id === session.studentId) ?? myStudents.find((s) => s.id === session.studentId);
                   return (
                     <Card key={session.id} className="glass-card hover:border-primary/30 transition-all">
-                      <CardContent className="p-5 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <CardContent className="p-5 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                             <CalendarIcon className="w-6 h-6 text-primary" />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="font-semibold">{session.type}</p>
                             <p className="text-sm text-muted-foreground">
                               {student?.name ?? "Unknown"} • {format(new Date(session.date), "EEE, MMM d 'at' h:mm a")}
                             </p>
+                            <a
+                              href={session.googleClassroomLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5"
+                            >
+                              <ExternalLink className="w-3 h-3 shrink-0" />
+                              Google Classroom Link
+                            </a>
                           </div>
                         </div>
-                        <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5">UPCOMING</Badge>
+                        <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5 shrink-0">UPCOMING</Badge>
                       </CardContent>
                     </Card>
                   );

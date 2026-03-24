@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Flame, Trophy, Calendar, Sparkles, BookOpen, Target, Star, CheckCircle2 } from "lucide-react";
+import { Flame, Trophy, Calendar, Sparkles, BookOpen, Target, Star, CheckCircle2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 
@@ -278,14 +278,29 @@ export default function StudentDashboard() {
                   <CardContent className="space-y-4">
                     {mySessions.length > 0 ? (
                       mySessions.map((session) => (
-                        <div key={session.id} className="flex items-center justify-between p-3 rounded-lg border bg-background/50 hover:bg-muted/30 transition-colors">
-                          <div>
-                            <p className="font-semibold text-sm">{session.type}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(session.date), "MMM d, h:mm a")}
-                            </p>
+                        <div key={session.id} className="p-3 rounded-lg border bg-background/50 hover:bg-muted/30 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-semibold text-sm">{session.type}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(session.date), "EEE, MMM d 'at' h:mm a")}
+                              </p>
+                            </div>
+                            <a
+                              href={session.googleClassroomLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0"
+                            >
+                              <Button
+                                size="sm"
+                                className="rounded-full bg-[#1a73e8] hover:bg-[#1557b0] text-white gap-1.5 text-xs"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                Join
+                              </Button>
+                            </a>
                           </div>
-                          <Button size="sm" variant="secondary" className="rounded-full">Join</Button>
                         </div>
                       ))
                     ) : (
