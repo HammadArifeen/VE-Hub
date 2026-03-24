@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "SuccessFlow Student Dashboard"
+version = "1.0.0"
+id = "artifacts/student-success"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23117
+
+[services.development]
+run = "pnpm --filter @workspace/student-success run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/student-success", "run", "build" ]
+publicDir = "artifacts/student-success/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23117"
+BASE_PATH = "/"

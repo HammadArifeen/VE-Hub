@@ -1,0 +1,17 @@
+packages:
+  "recharts": "For the area and line charts representing weekly progress."
+  "react-confetti": "For celebration effects when unlocking achievements."
+  "framer-motion": "For premium smooth animations and page transitions."
+  "date-fns": "For formatting and handling dates in the schedule and heatmap."
+  "clsx": "Utility for constructing className strings conditionally."
+  "tailwind-merge": "Utility to merge tailwind classes without style conflicts."
+
+images:
+  - path: "artifacts/student-success/public/images/hero-bg-student.png"
+    description: "Abstract fluid gradient mesh background in deep electric indigo, cyan, and navy blue, very subtle and dark, premium SaaS aesthetic"
+    aspect_ratio: "16:9"
+
+notes:
+  - The app runs entirely on the frontend using React Context and localStorage.
+  - Mock data is initialized in a centralized store to allow in-memory updates during the session.
+  - Theme (dark/light) defaults to dark as per the premium SaaS aesthetic request.

@@ -4,6 +4,27 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## Artifacts
+
+### `artifacts/student-success` — SuccessFlow Student Dashboard
+
+A premium SaaS-style academic dashboard at the root path `/`. Built with React + TypeScript + Tailwind CSS v4.
+
+**Features:**
+- Login page with SuccessFlow branding and demo credentials for 3 roles
+- Role-based routing: student → `/student`, mentor → `/mentor`, admin → `/admin`
+- Theme toggle (dark/light) persisted in localStorage
+- **Student Dashboard:** Hero with streak/XP, subject progress bars, achievement badges, 8-week area chart, upcoming sessions, mentor notes with key advice callout
+- **Mentor Dashboard:** Full sidebar layout with 7 distinct views (Dashboard, Subjects, Schedule, Achievements, Messages, Resources, Settings), collapsible sidebar, student-switching panel, heatmap, charts, inline-editable notes
+- **Admin Dashboard:** Stat cards, tabbed mentors/students tables with live search/filter, inline editing
+
+**Mock credentials:**
+- Students: `abduljaleel/student123`, `sarah/student123`, `omar/student123`
+- Mentors: `abdelrahman/mentor123`, `fatima/mentor123`
+- Admins: `Musab/CEO123`, `Hammad/Admin123`
+
+**Dependencies:** recharts, framer-motion, react-confetti, date-fns, clsx, tailwind-merge
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

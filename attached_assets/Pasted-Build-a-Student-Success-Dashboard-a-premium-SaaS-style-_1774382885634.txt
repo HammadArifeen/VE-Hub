@@ -1,0 +1,120 @@
+Build a "Student Success Dashboard" — a premium SaaS-style web app using React + TypeScript + Tailwind CSS.
+
+Make this feel like Linear.app, Notion, or Revolut levels of polish. Every pixel should feel intentional.
+
+AUTHENTICATION & ROLES
+Build a login screen with the "SuccessFlow" branding (logo, tagline "Your premium academic companion", gradient background). Support 3 roles with these mock credentials displayed clearly on the login page:
+
+Students: abduljaleel / student123, and at least 2 more students — all use student123
+
+Mentors: abdelrahman / mentor123, and at least 1 more mentor — all use mentor123
+
+Admins: Musab / CEO123, Hammad / Admin123
+
+Login must validate against mockData. Each role redirects to a completely different dashboard. Include a Logout button that returns to login.
+
+ADMIN DASHBOARD (CEO/Admin view)
+3 stat cards at top: Total Mentors, Total Students, Paired Students (with pairing rate %)
+
+Tab toggle: MENTORS LIST / STUDENTS LIST
+
+Mentors table: Avatar, Name, Subject, Mentees Count, Status badge (ACTIVE), Edit pencil icon that makes fields inline-editable with Save/Cancel
+
+Students table: Avatar, Name, Year Group, Mentor, Status badge (PAIRED), Edit icon
+
+Working search/filter on both tables that actually filters results as you type
+
+Admin header showing name + role badge + Logout + Theme toggle
+
+MENTOR DASHBOARD
+Full sidebar-based layout with "PHANTOMAI" branding. Sidebar nav items: Dashboard, Subjects, Schedule, Achievements, Messages, Resources, Settings, Collapse toggle.
+
+Each sidebar item should load a different view/page — not just highlight.
+
+Dashboard view includes:
+
+My Students panel — list of assigned students, clickable to switch between them
+
+Student Profile Card — avatar, name, year group, Target Grade, Progress %, Attendance %, Completion %, Study Hours
+
+Performance Heatmap — GitHub-style grid (MON–SUN, 4 weeks, green intensity LOW→HIGH)
+
+Weekly Progress Trend — line/area chart (W1–W8) with gradient fill under the line
+
+Subject Performance — progress bars per subject with current % / target %, color-coded
+
+Targets section — Short Term and Long Term goals with bullet-point action items, editable
+
+Schedule — upcoming sessions (date, type, time, UPCOMING badge), "Edit Schedule" + "Schedule Session" modal with Date, Time, Session Type dropdown
+
+Mentor Notes — timeline feed with dates, observations, actionable advice, "Add Note", "Save Notes", "Remove Note" — all editable
+
+Resource Hub — cards with title + type badge (NOTES, VIDEO, WORKSHEET), editable
+
+Quick Actions: Schedule Session, Send Message, Generate Report, Flag Concern — each opens a modal/form
+
+STUDENT DASHBOARD
+Hero Section — animated welcome card with personalized greeting ("Good morning, [Name]! 👋"), dynamic streak counter (Duolingo-style fire streak 🔥), weekly XP bar (e.g. 340/500 XP), motivational quote, warm gradient background
+
+Subject Breakdown Table — animated progress bars (fill on load with ease-in), color-coded grade badges (red <6, orange 6-7, green 8+), % improvement shown, rows clickable/expandable for detail
+
+Achievements/Badges — horizontal scrollable row of Duolingo-style badges: '🔥 7-Day Streak', '📚 Essay Master', '⚡ Quick Learner', '🏆 Top Performer', '🎯 Goal Crusher'. Some locked (grayed), some unlocked (glowing)
+
+Upcoming Sessions widget — next 2-3 sessions with mentor name, subject, time, "Join" button
+
+Weekly Progress Chart — line/area chart (8 weeks), glassmorphism card, gradient fill
+
+Mentor Notes — timeline/feed format, mentor avatar + date + text + subject tag badge, "Key Advice" as highlighted callout card (amber/gold accent)
+
+GLOBAL UX & DESIGN
+Collapsible sidebar — icon-only mode when collapsed, full labels when expanded
+
+Dark/Light mode toggle — actually works, stored in localStorage, affects entire app including login
+
+Profile dropdown (top right) — avatar with initials (gradient background), name, grade/role badge. Click opens dropdown: Profile, Settings, Switch Role, Logout
+
+Mobile responsive — sidebar → bottom tab bar, cards stack vertically, tables scroll horizontally
+
+MICRO-ANIMATIONS & POLISH
+Number counter animations (grades count up on load)
+
+Progress bars animate from 0 → value on page load
+
+Cards: subtle hover lift (translateY -4px, shadow increase)
+
+Toast notifications on save actions ("Note saved! ✅")
+
+Confetti burst on new achievement/milestone
+
+Smooth transitions on ALL interactive elements (0.2s ease)
+
+DESIGN SYSTEM
+Primary: Deep navy #0f0f2e, Electric indigo #4f46e5, Cyan accent #06b6d4
+
+Semantic: Success #10b981, Warning #f59e0b, Danger #f43f5e
+
+Typography: Inter font, bold headings, readable body
+
+Cards: Glassmorphism — backdrop-filter blur, semi-transparent backgrounds, subtle borders
+
+Spacing: 8px grid
+
+Depth: No hard borders — use box-shadows
+
+Consistent border-radius, smooth transitions everywhere
+
+MOCK DATA REQUIREMENTS
+At least 3 students with full data (grades per subject, 8 weeks of historical scores, sessions, notes, achievements with locked/unlocked status)
+
+At least 2 mentors with assigned students
+
+Achievement badges with locked/unlocked state
+
+Upcoming sessions with real dates/times
+
+Mentor notes with dates, observations, and actionable advice
+
+Resources with type tags (NOTES, VIDEO, WORKSHEET)
+
+CRITICAL: Search/filter on admin tables must actually filter rows. All sidebar nav items must load distinct views. No floating "Launch!" tooltip bugs. Login must work with the credentials listed above. Every interactive element (edit, save, cancel, schedule, remove) must be functional.
+
