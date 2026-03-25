@@ -1,20 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import ReactConfetti from "react-confetti";
 import { useAppState } from "@/hooks/use-app-state";
+import { AUTH_USERS } from "@/lib/mock-data";
 import { TopNav } from "@/components/layout/TopNav";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Flame, Trophy, Calendar, Sparkles, BookOpen, Target, Star, CheckCircle2, ExternalLink, ClipboardCheck, GraduationCap } from "lucide-react";
+import { Flame, Trophy, Calendar, Sparkles, BookOpen, Target, Star, CheckCircle2, ExternalLink, ClipboardCheck, GraduationCap, MessageSquare, Send } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 
 export default function StudentDashboard() {
-  const { currentUser, getStudentProfile, sessions, notes, mockResults, homework } = useAppState();
+  const { currentUser, getStudentProfile, sessions, notes, mockResults, homework, messages, sendMessage, getConversationMessages } = useAppState();
   const [showConfetti, setShowConfetti] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [chatMentorId, setChatMentorId] = useState<string | null>(null);
+  const [studentMsgInput, setStudentMsgInput] = useState("");
+  const studentMsgEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -448,6 +454,113 @@ export default function StudentDashboard() {
               )}
             </div>
           </div>
+
+          {(() => {
+            const mentors = AUTH_USERS.filter((u) => u.role === "mentor");
+            const mentorConversations = mentors.map((m) => {
+              const key = [currentUser.id, m.id].sort().join("-");
+              const msgs = getConversationMessages(key);
+              return { mentor: m, conversationKey: key, messages: msgs };
+            }).filter((c) => c.messages.length > 0 || chatMentorId === c.mentor.id);
+
+            const firstMentorWithMessages = mentorConversations.length > 0 ? mentorConversations[0].mentor.id : null;
+            const effectiveChatMentorId = chatMentorId ?? firstMentorWithMessages;
+
+            const activeMentor = effectiveChatMentorId ? mentors.find((m) => m.id === effectiveChatMentorId) : null;
+            const activeConvKey = activeMentor ? [currentUser.id, activeMentor.id].sort().join("-") : "";
+            const activeMessages = activeConvKey ? getConversationMessages(activeConvKey) : [];
+
+            const handleStudentSend = (e: React.FormEvent) => {
+              e.preventDefault();
+              if (!studentMsgInput.trim() || !activeMentor || !activeConvKey) return;
+              sendMessage({
+                conversationKey: activeConvKey,
+                senderId: currentUser.id,
+                senderName: profile.displayName,
+                text: studentMsgInput.trim(),
+              });
+              setStudentMsgInput("");
+              setTimeout(() => studentMsgEndRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+            };
+
+            if (mentorConversations.length === 0) return null;
+
+            return (
+              <motion.section variants={itemVariants}>
+                <h2 className="text-xl md:text-2xl font-display font-bold mb-4 flex items-center gap-2">
+                  <MessageSquare className="text-primary" /> Messages
+                </h2>
+                <Card className="glass-card overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-3 min-h-[350px]">
+                    <div className="border-b md:border-b-0 md:border-r border-border/30">
+                      <div className="p-3 border-b border-border/30">
+                        <p className="text-sm font-semibold text-muted-foreground">Conversations</p>
+                      </div>
+                      <div className="overflow-y-auto max-h-[300px]">
+                        {mentors.map((m) => {
+                          const key = [currentUser.id, m.id].sort().join("-");
+                          const msgs = getConversationMessages(key);
+                          if (msgs.length === 0 && chatMentorId !== m.id) return null;
+                          return (
+                            <button
+                              key={m.id}
+                              onClick={() => setChatMentorId(m.id)}
+                              className={`w-full flex items-center gap-3 p-3 hover:bg-muted/30 transition-colors border-b border-border/30 last:border-0 ${effectiveChatMentorId === m.id ? "bg-primary/5" : ""}`}
+                            >
+                              <Avatar className="h-8 w-8 shrink-0">
+                                <AvatarFallback className="bg-gradient-premium text-white text-xs">{m.avatar}</AvatarFallback>
+                              </Avatar>
+                              <div className="text-left min-w-0">
+                                <p className="font-semibold text-sm truncate">{m.name}</p>
+                                <p className="text-xs text-muted-foreground">Mentor</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="md:col-span-2 flex flex-col">
+                      <div className="p-3 border-b border-border/30 shrink-0">
+                        <p className="text-sm font-semibold">{activeMentor?.name ?? "Select a conversation"}</p>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px] max-h-[300px]">
+                        {activeMessages.length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-8">No messages yet.</p>
+                        )}
+                        {activeMessages.map((msg) => {
+                          const isMine = msg.senderId === currentUser.id;
+                          return (
+                            <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                              <div className={`${isMine ? "bg-primary text-white rounded-2xl rounded-br-sm" : "bg-muted rounded-2xl rounded-bl-sm"} px-4 py-2 text-sm max-w-[80%]`}>
+                                <p>{msg.text}</p>
+                                <p className={`text-[10px] mt-1 ${isMine ? "text-white/60" : "text-muted-foreground"}`}>
+                                  {format(new Date(msg.timestamp), "h:mm a")}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div ref={studentMsgEndRef} />
+                      </div>
+                      {activeMentor && (
+                        <form onSubmit={handleStudentSend} className="flex gap-3 p-3 border-t border-border/30 shrink-0">
+                          <Input
+                            value={studentMsgInput}
+                            onChange={(e) => setStudentMsgInput(e.target.value)}
+                            placeholder="Type a message..."
+                            className="flex-1"
+                          />
+                          <Button type="submit" disabled={!studentMsgInput.trim()} className="bg-gradient-premium text-white">
+                            <Send className="w-4 h-4" />
+                          </Button>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </motion.section>
+            );
+          })()}
         </motion.div>
       </main>
     </div>

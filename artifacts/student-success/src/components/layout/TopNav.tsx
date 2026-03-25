@@ -36,8 +36,8 @@ export function TopNav({ title = "Voices Empowered" }: { title?: string }) {
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
 
-          {/* Notification Bell — only for students */}
-          {currentUser.role === "student" && (
+          {/* Notification Bell */}
+          {(currentUser.role === "student" || currentUser.role === "mentor") && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full relative">

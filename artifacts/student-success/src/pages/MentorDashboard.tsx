@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { useAppState } from "@/hooks/use-app-state";
@@ -23,15 +23,12 @@ const initials = (name: string) =>
   name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
 const Heatmap = () => {
-  const days = Array.from({ length: 28 });
+  const intensities = useMemo(() => Array.from({ length: 28 }, (_, i) => ((i * 7 + 3) * 13 + 5) % 5), []);
   return (
     <div className="grid grid-flow-col grid-rows-7 gap-1 overflow-x-auto py-2">
-      {days.map((_, i) => {
-        const intensity = Math.floor(Math.random() * 5);
-        return (
-          <div key={i} className={`w-4 h-4 rounded-sm ${intensity === 0 ? "bg-muted" : intensity === 1 ? "bg-success/30" : intensity === 2 ? "bg-success/60" : intensity === 3 ? "bg-success/80" : "bg-success"}`} title={`Day ${i + 1}`} />
-        );
-      })}
+      {intensities.map((intensity, i) => (
+        <div key={i} className={`w-4 h-4 rounded-sm ${intensity === 0 ? "bg-muted" : intensity === 1 ? "bg-success/30" : intensity === 2 ? "bg-success/60" : intensity === 3 ? "bg-success/80" : "bg-success"}`} title={`Day ${i + 1}`} />
+      ))}
     </div>
   );
 };
@@ -226,6 +223,7 @@ export default function MentorDashboard() {
     { id: "achievements", icon: Trophy, label: "Achievements" },
     { id: "messages", icon: MessageSquare, label: "Messages" },
     { id: "resources", icon: Folder, label: "Resources" },
+    { id: "settings", icon: Settings, label: "Settings" },
   ];
 
   const switchTab = (tabId: string) => {
@@ -612,7 +610,7 @@ export default function MentorDashboard() {
                       </Select>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2"><label className="text-sm font-medium">Date</label><Input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} required /></div>
+                      <div className="space-y-2"><label className="text-sm font-medium">Date</label><Input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} required min={new Date().toISOString().split("T")[0]} /></div>
                       <div className="space-y-2"><label className="text-sm font-medium">Time</label><Input type="time" value={sessionTime} onChange={(e) => setSessionTime(e.target.value)} required /></div>
                     </div>
                     <div className="space-y-2">
@@ -823,7 +821,7 @@ export default function MentorDashboard() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Due Date</label>
-                        <Input type="date" value={hwDueDate} onChange={(e) => setHwDueDate(e.target.value)} required />
+                        <Input type="date" value={hwDueDate} onChange={(e) => setHwDueDate(e.target.value)} required min={new Date().toISOString().split("T")[0]} />
                       </div>
                     </div>
                     <Button type="submit" disabled={!hwStudentId || !hwTitle || !hwSubject || !hwDueDate} className="w-full bg-gradient-premium text-white">Assign Homework</Button>
@@ -959,12 +957,12 @@ export default function MentorDashboard() {
               <Card className="glass-card col-span-1 overflow-hidden">
                 <CardHeader className="pb-3"><CardTitle className="text-base">Conversations</CardTitle></CardHeader>
                 <CardContent className="p-0 overflow-y-auto max-h-[calc(100vh-320px)]">
-                  {myStudents.map((student) => (
+                  {registeredStudents.map((student) => (
                     <button key={student.id} onClick={() => setActiveStudentId(student.id)} className={`w-full flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors border-b border-border/30 ${activeStudentId === student.id ? "bg-primary/5" : ""}`}>
-                      <Avatar className="h-10 w-10 shrink-0"><AvatarFallback className="bg-gradient-premium text-white">{initials(student.name)}</AvatarFallback></Avatar>
+                      <Avatar className="h-10 w-10 shrink-0"><AvatarFallback className="bg-gradient-premium text-white">{student.avatar}</AvatarFallback></Avatar>
                       <div className="text-left">
                         <p className="font-semibold text-sm">{student.name}</p>
-                        <p className="text-xs text-muted-foreground">{student.yearGroup || "Year not set"}</p>
+                        <p className="text-xs text-muted-foreground">Student</p>
                       </div>
                     </button>
                   ))}
@@ -972,7 +970,7 @@ export default function MentorDashboard() {
               </Card>
               <Card className="glass-card col-span-1 md:col-span-2 flex flex-col overflow-hidden">
                 <CardHeader className="pb-3 border-b border-border/30 shrink-0">
-                  <CardTitle className="text-base">{myStudents.find((s) => s.id === activeStudentId)?.name ?? "Select a conversation"}</CardTitle>
+                  <CardTitle className="text-base">{registeredStudents.find((s) => s.id === activeStudentId)?.name ?? myStudents.find((s) => s.id === activeStudentId)?.name ?? "Select a conversation"}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 p-4 md:p-6 flex flex-col overflow-hidden">
                   <div className="flex-1 overflow-y-auto space-y-3 mb-4">

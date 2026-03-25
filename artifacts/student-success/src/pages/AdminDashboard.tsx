@@ -7,13 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Users, GraduationCap, Link as LinkIcon } from "lucide-react";
+import { Search, Users, GraduationCap, Link as LinkIcon, CalendarDays } from "lucide-react";
 
 const ALL_STUDENTS = AUTH_USERS.filter((u) => u.role === "student");
 const ALL_MENTORS = AUTH_USERS.filter((u) => u.role === "mentor");
 
 export default function AdminDashboard() {
-  const { currentUser, studentProfiles, mentorProfiles, isOnboardingComplete } = useAppState();
+  const { currentUser, studentProfiles, mentorProfiles, sessions, isOnboardingComplete } = useAppState();
   const [searchTerm, setSearchTerm] = useState("");
 
   if (!currentUser || currentUser.role !== "admin") return null;
@@ -38,7 +38,7 @@ export default function AdminDashboard() {
       <main className="container mx-auto px-4 sm:px-8 mt-8 space-y-8">
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="glass-card">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
@@ -60,6 +60,18 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Total Mentors</p>
                 <h3 className="text-3xl font-bold font-display">{ALL_MENTORS.length}</h3>
                 <p className="text-xs text-muted-foreground">{completedMentors.length} onboarded</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="glass-card">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center text-warning">
+                <CalendarDays className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Total Sessions</p>
+                <h3 className="text-3xl font-bold font-display">{sessions.length}</h3>
+                <p className="text-xs text-muted-foreground">{sessions.filter((s) => s.status === "upcoming").length} upcoming</p>
               </div>
             </CardContent>
           </Card>
