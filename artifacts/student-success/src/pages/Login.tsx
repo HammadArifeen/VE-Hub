@@ -30,7 +30,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background relative overflow-hidden">
-      {/* Decorative background blur blobs */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary/20 blur-[120px] rounded-full pointer-events-none" />
       
@@ -50,11 +49,13 @@ export default function Login() {
         className="w-full max-w-md p-4 z-10"
       >
         <div className="text-center mb-8">
-          <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-premium flex items-center justify-center shadow-xl shadow-primary/20 mb-4">
-            <span className="text-white font-display font-bold text-4xl">S</span>
-          </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">SuccessFlow</h1>
-          <p className="text-muted-foreground mt-2">Your premium academic companion</p>
+          <img
+            src="/ve-logo.png"
+            alt="Voices Empowered"
+            className="h-24 w-24 mx-auto rounded-2xl object-cover shadow-xl shadow-primary/20 mb-4"
+          />
+          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">Voices Empowered</h1>
+          <p className="text-muted-foreground mt-2">Every student has potential</p>
         </div>
 
         <Card className="glass-card border-white/10 dark:border-white/5">

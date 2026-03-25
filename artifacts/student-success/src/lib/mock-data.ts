@@ -60,6 +60,39 @@ export interface Resource {
   type: "NOTES" | "VIDEO" | "WORKSHEET";
 }
 
+export interface Message {
+  id: string;
+  conversationKey: string;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface MockExamResult {
+  id: string;
+  studentId: string;
+  mentorId: string;
+  subject: string;
+  score: number;
+  totalMarks: number;
+  grade: string;
+  date: string;
+  notes: string;
+}
+
+export interface HomeworkAssignment {
+  id: string;
+  studentId: string;
+  mentorId: string;
+  title: string;
+  subject: string;
+  dueDate: string;
+  status: "pending" | "submitted" | "graded";
+  grade?: string;
+  feedback?: string;
+}
+
 export interface StudentProfile {
   userId: string;
   displayName: string;

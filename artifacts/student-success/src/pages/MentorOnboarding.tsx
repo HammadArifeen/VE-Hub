@@ -103,9 +103,7 @@ export default function MentorOnboarding() {
         className="w-full max-w-2xl z-10"
       >
         <div className="text-center mb-8">
-          <div className="h-14 w-14 mx-auto rounded-2xl bg-gradient-premium flex items-center justify-center shadow-xl shadow-primary/20 mb-4">
-            <span className="text-white font-bold text-2xl">S</span>
-          </div>
+          <img src="/ve-logo.png" alt="VE" className="h-14 w-14 mx-auto rounded-2xl object-cover shadow-xl shadow-primary/20 mb-4" />
           <h1 className="text-3xl font-bold tracking-tight">Mentor Setup</h1>
           <p className="text-muted-foreground mt-1">Let's configure your mentor dashboard</p>
         </div>

@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
-export function TopNav({ title = "SuccessFlow" }: { title?: string }) {
+export function TopNav({ title = "Voices Empowered" }: { title?: string }) {
   const { theme, toggleTheme, currentUser, logout, notifications, markNotificationRead, clearAllNotifications } = useAppState();
 
   if (!currentUser) return null;
@@ -25,9 +25,7 @@ export function TopNav({ title = "SuccessFlow" }: { title?: string }) {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-8">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-premium flex items-center justify-center shadow-lg">
-            <span className="text-white font-display font-bold text-lg">S</span>
-          </div>
+          <img src="/ve-logo.png" alt="VE" className="h-8 w-8 rounded-lg object-cover shadow-lg" />
           <span className="font-display font-bold text-xl tracking-tight text-foreground hidden sm:inline-block">
             {title}
           </span>

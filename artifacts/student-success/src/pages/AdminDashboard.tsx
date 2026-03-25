@@ -33,7 +33,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-12">
-      <TopNav title="SuccessFlow Admin" />
+      <TopNav title="Voices Empowered Admin" />
 
       <main className="container mx-auto px-4 sm:px-8 mt-8 space-y-8">
 

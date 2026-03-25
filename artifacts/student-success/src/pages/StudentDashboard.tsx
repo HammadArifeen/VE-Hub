@@ -7,12 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Flame, Trophy, Calendar, Sparkles, BookOpen, Target, Star, CheckCircle2, ExternalLink } from "lucide-react";
+import { Flame, Trophy, Calendar, Sparkles, BookOpen, Target, Star, CheckCircle2, ExternalLink, ClipboardCheck, GraduationCap } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 
 export default function StudentDashboard() {
-  const { currentUser, getStudentProfile, sessions, notes } = useAppState();
+  const { currentUser, getStudentProfile, sessions, notes, mockResults, homework } = useAppState();
   const [showConfetti, setShowConfetti] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -30,6 +30,10 @@ export default function StudentDashboard() {
   );
   const myNotes = notes.filter((n) => n.studentId === currentUser.id);
   const keyAdvice = myNotes.find((n) => n.isKeyAdvice);
+  const myMockResults = mockResults.filter((r) => r.studentId === currentUser.id);
+  const myHomework = homework.filter((h) => h.studentId === currentUser.id);
+  const completedHw = myHomework.filter((h) => h.status === "graded").length;
+  const hwProgress = myHomework.length > 0 ? Math.round((completedHw / myHomework.length) * 100) : 0;
 
   const hasSubjectHistory =
     profile.subjects.length > 0 && profile.subjects[0].history.some((h) => h > 0);
@@ -50,6 +54,17 @@ export default function StudentDashboard() {
     return "bg-destructive/10 text-destructive border-destructive/30";
   };
 
+  const overallProgress = (() => {
+    const subjectAvg = profile.subjects.length > 0
+      ? Math.round(profile.subjects.reduce((s, sub) => s + sub.current, 0) / profile.subjects.length)
+      : 0;
+    const mockAvg = myMockResults.length > 0
+      ? Math.round(myMockResults.reduce((s, r) => s + (r.score / r.totalMarks) * 100, 0) / myMockResults.length)
+      : 0;
+    const parts = [subjectAvg, mockAvg, hwProgress].filter((v) => v > 0);
+    return parts.length > 0 ? Math.round(parts.reduce((s, v) => s + v, 0) / parts.length) : 0;
+  })();
+
   const containerVariants = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.08 } },
@@ -65,57 +80,81 @@ export default function StudentDashboard() {
       {showConfetti && <ReactConfetti recycle={false} numberOfPieces={400} />}
       <TopNav />
 
-      <main className="container mx-auto px-4 sm:px-8 mt-8">
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
+      <main className="container mx-auto px-4 sm:px-8 mt-6 md:mt-8">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-6 md:space-y-8">
 
-          {/* Hero */}
           <motion.section variants={itemVariants}>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-premium p-8 sm:p-12 shadow-2xl">
+            <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-premium p-6 sm:p-8 md:p-12 shadow-2xl">
               <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-96 h-96 bg-white/10 blur-[80px] rounded-full pointer-events-none" />
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                 <div>
-                  <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-2">
-                    Good morning, {profile.displayName}! 👋
+                  <h1 className="text-3xl md:text-5xl font-display font-bold text-white mb-2">
+                    Welcome, {profile.displayName}!
                   </h1>
-                  <p className="text-white/80 text-lg max-w-xl">
-                    "Success is the sum of small efforts, repeated day in and day out." Let's keep the momentum going.
+                  <p className="text-white/80 text-base md:text-lg max-w-xl">
+                    Every student has potential. Keep building yours.
                   </p>
                   <Badge className="mt-3 bg-white/20 text-white border-white/30 hover:bg-white/30">
                     {profile.yearGroup}
                   </Badge>
                 </div>
-                <div className="flex gap-4">
-                  <div className="glass bg-white/20 p-4 rounded-2xl flex flex-col items-center min-w-[100px]">
-                    <div className="flex items-center gap-2 text-2xl font-bold text-white">
-                      <Flame className="text-orange-400 fill-orange-400" />
+                <div className="flex gap-3 md:gap-4">
+                  <div className="glass bg-white/20 p-3 md:p-4 rounded-2xl flex flex-col items-center min-w-[80px] md:min-w-[100px]">
+                    <div className="flex items-center gap-1 md:gap-2 text-xl md:text-2xl font-bold text-white">
+                      <Flame className="text-orange-400 fill-orange-400 w-5 h-5 md:w-6 md:h-6" />
                       {profile.streak}
                     </div>
-                    <span className="text-white/80 text-sm font-medium">Day Streak</span>
+                    <span className="text-white/80 text-xs md:text-sm font-medium">Day Streak</span>
                   </div>
-                  <div className="glass bg-white/20 p-4 rounded-2xl flex flex-col items-center min-w-[120px]">
-                    <div className="flex items-center gap-2 text-2xl font-bold text-white">
-                      <Sparkles className="text-yellow-300" />
+                  <div className="glass bg-white/20 p-3 md:p-4 rounded-2xl flex flex-col items-center min-w-[90px] md:min-w-[120px]">
+                    <div className="flex items-center gap-1 md:gap-2 text-xl md:text-2xl font-bold text-white">
+                      <Sparkles className="text-yellow-300 w-5 h-5 md:w-6 md:h-6" />
                       {profile.xp}
                     </div>
-                    <span className="text-white/80 text-sm font-medium">XP Earned</span>
+                    <span className="text-white/80 text-xs md:text-sm font-medium">XP Earned</span>
                   </div>
                 </div>
               </div>
-              <div className="mt-8 bg-black/20 rounded-full p-1.5 flex items-center gap-4 relative z-10">
+              <div className="mt-6 md:mt-8 bg-black/20 rounded-full p-1.5 flex items-center gap-4 relative z-10">
                 <Progress value={(profile.xp / profile.maxXp) * 100} className="h-3 bg-black/20 [&>div]:bg-white" />
-                <span className="text-white font-medium text-sm whitespace-nowrap px-2">
-                  {profile.xp} / {profile.maxXp} XP to next level
+                <span className="text-white font-medium text-xs md:text-sm whitespace-nowrap px-2">
+                  {profile.xp} / {profile.maxXp} XP
                 </span>
               </div>
             </div>
           </motion.section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left: Subjects + Chart */}
-            <div className="lg:col-span-2 space-y-8">
+          <motion.section variants={itemVariants}>
+            <Card className="glass-card border-t-4 border-t-primary">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-display font-bold text-lg">Overall Progression</h3>
+                  <span className="text-2xl font-bold text-primary">{overallProgress}%</span>
+                </div>
+                <Progress value={mounted ? overallProgress : 0} className="h-4" />
+                <div className="grid grid-cols-3 gap-4 mt-4 text-center text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Subjects</p>
+                    <p className="font-semibold">{profile.subjects.length > 0 ? Math.round(profile.subjects.reduce((s, sub) => s + sub.current, 0) / profile.subjects.length) : 0}% avg</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Mock Exams</p>
+                    <p className="font-semibold">{myMockResults.length > 0 ? Math.round(myMockResults.reduce((s, r) => s + (r.score / r.totalMarks) * 100, 0) / myMockResults.length) : 0}% avg</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Homework</p>
+                    <p className="font-semibold">{completedHw}/{myHomework.length} done</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.section>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            <div className="lg:col-span-2 space-y-6 md:space-y-8">
 
               <motion.section variants={itemVariants}>
-                <h2 className="text-2xl font-display font-bold mb-4 flex items-center gap-2">
+                <h2 className="text-xl md:text-2xl font-display font-bold mb-4 flex items-center gap-2">
                   <BookOpen className="text-primary" /> Current Performance
                 </h2>
                 <Card className="glass-card">
@@ -128,17 +167,17 @@ export default function StudentDashboard() {
                     ) : (
                       <div className="divide-y divide-border/50">
                         {profile.subjects.map((sub, idx) => (
-                          <div key={idx} className="p-4 sm:p-6 hover:bg-muted/30 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div key={idx} className="p-3 sm:p-4 md:p-6 hover:bg-muted/30 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4">
                             <div className="flex-1 w-full">
                               <div className="flex items-center justify-between mb-2">
-                                <span className="font-semibold text-foreground text-lg">{sub.name}</span>
+                                <span className="font-semibold text-foreground text-base md:text-lg">{sub.name}</span>
                                 <Badge className={getGradeColor(sub.current)} variant="outline">
                                   {sub.current > 0 ? `${sub.current}%` : "Not graded"}
                                 </Badge>
                               </div>
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-3 md:gap-4">
                                 <Progress value={mounted ? sub.current : 0} className="h-2 flex-1" />
-                                <span className="text-sm text-muted-foreground w-24 text-right">
+                                <span className="text-xs md:text-sm text-muted-foreground w-20 md:w-24 text-right">
                                   Target: {sub.target}%
                                 </span>
                               </div>
@@ -151,6 +190,84 @@ export default function StudentDashboard() {
                 </Card>
               </motion.section>
 
+              {myMockResults.length > 0 && (
+                <motion.section variants={itemVariants}>
+                  <h2 className="text-xl md:text-2xl font-display font-bold mb-4 flex items-center gap-2">
+                    <GraduationCap className="text-primary" /> Mock Exam Results
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {myMockResults.map((result) => {
+                      const pct = Math.round((result.score / result.totalMarks) * 100);
+                      return (
+                        <Card key={result.id} className="glass-card">
+                          <CardContent className="p-4 md:p-5 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold">{result.subject}</p>
+                                <p className="text-xs text-muted-foreground">{format(new Date(result.date), "MMM d, yyyy")}</p>
+                              </div>
+                              {result.grade && (
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <span className="font-bold text-primary text-sm">{result.grade}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span>{result.score}/{result.totalMarks}</span>
+                                <span className="font-semibold">{pct}%</span>
+                              </div>
+                              <Progress value={pct} className="h-2" />
+                            </div>
+                            {result.notes && <p className="text-xs italic text-muted-foreground">"{result.notes}"</p>}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </motion.section>
+              )}
+
+              {myHomework.length > 0 && (
+                <motion.section variants={itemVariants}>
+                  <h2 className="text-xl md:text-2xl font-display font-bold mb-4 flex items-center gap-2">
+                    <ClipboardCheck className="text-primary" /> Homework
+                  </h2>
+                  <Card className="glass-card">
+                    <CardContent className="p-0 divide-y divide-border/50">
+                      {myHomework.map((hw) => {
+                        const isOverdue = new Date(hw.dueDate) < new Date() && hw.status === "pending";
+                        return (
+                          <div key={hw.id} className="p-3 md:p-4 flex items-center gap-3 md:gap-4">
+                            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                              hw.status === "graded" ? "bg-success/10" : hw.status === "submitted" ? "bg-primary/10" : isOverdue ? "bg-destructive/10" : "bg-warning/10"
+                            }`}>
+                              <ClipboardCheck className={`w-4 h-4 md:w-5 md:h-5 ${
+                                hw.status === "graded" ? "text-success" : hw.status === "submitted" ? "text-primary" : isOverdue ? "text-destructive" : "text-warning"
+                              }`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm">{hw.title}</p>
+                              <p className="text-xs text-muted-foreground">{hw.subject} • Due {format(new Date(hw.dueDate), "MMM d")}</p>
+                              {hw.grade && <p className="text-xs text-success">Grade: {hw.grade}</p>}
+                              {hw.feedback && <p className="text-xs text-muted-foreground italic">"{hw.feedback}"</p>}
+                            </div>
+                            <Badge variant="outline" className={`text-xs shrink-0 ${
+                              hw.status === "graded" ? "text-success border-success/30" :
+                              hw.status === "submitted" ? "text-primary border-primary/30" :
+                              isOverdue ? "text-destructive border-destructive/30" :
+                              "text-warning border-warning/30"
+                            }`}>
+                              {hw.status === "graded" ? "GRADED" : hw.status === "submitted" ? "SUBMITTED" : isOverdue ? "OVERDUE" : "PENDING"}
+                            </Badge>
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+                </motion.section>
+              )}
+
               {hasSubjectHistory && (
                 <motion.section variants={itemVariants}>
                   <Card className="glass-card">
@@ -158,7 +275,7 @@ export default function StudentDashboard() {
                       <CardTitle>8-Week Progress Trend</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-[250px] w-full">
+                      <div className="h-[200px] md:h-[250px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
@@ -180,7 +297,6 @@ export default function StudentDashboard() {
                 </motion.section>
               )}
 
-              {/* Goals */}
               {(profile.targets.shortTerm.length > 0 || profile.targets.longTerm.length > 0) && (
                 <motion.section variants={itemVariants}>
                   <Card className="glass-card">
@@ -224,8 +340,7 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* Right: Achievements, Key Advice, Sessions */}
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
 
               <motion.section variants={itemVariants}>
                 <Card className="glass-card border-t-4 border-t-secondary">
@@ -261,7 +376,7 @@ export default function StudentDashboard() {
                       <Sparkles className="w-16 h-16 text-amber-500" />
                     </div>
                     <h3 className="font-semibold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-2">
-                      Key Advice 💡
+                      Key Advice
                     </h3>
                     <p className="text-sm text-foreground/90 italic relative z-10">"{keyAdvice.text}"</p>
                   </div>
@@ -294,7 +409,7 @@ export default function StudentDashboard() {
                             >
                               <Button
                                 size="sm"
-                                className="rounded-full bg-[#1a73e8] hover:bg-[#1557b0] text-white gap-1.5 text-xs"
+                                className="rounded-full bg-primary hover:bg-primary/90 text-white gap-1.5 text-xs"
                               >
                                 <ExternalLink className="w-3 h-3" />
                                 Join

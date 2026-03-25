@@ -2,6 +2,7 @@ import { createContext, useContext, useState, ReactNode, useEffect, useCallback 
 import {
   AUTH_USERS, ALL_ACHIEVEMENTS,
   StudentProfile, MentorProfile, Session, Note, Resource, User, Notification,
+  Message, MockExamResult, HomeworkAssignment,
 } from "@/lib/mock-data";
 import { toast } from "@/hooks/use-toast";
 
@@ -18,6 +19,9 @@ interface AppStateContextType {
   notes: Note[];
   resources: Resource[];
   notifications: Notification[];
+  messages: Message[];
+  mockResults: MockExamResult[];
+  homework: HomeworkAssignment[];
 
   isOnboardingComplete: (userId: string) => boolean;
   completeStudentOnboarding: (data: Omit<StudentProfile, "userId" | "streak" | "xp" | "maxXp" | "achievements" | "onboardingComplete">) => void;
@@ -34,6 +38,11 @@ interface AppStateContextType {
   updateStudentSubjectScore: (userId: string, subjectName: string, current: number) => void;
   markNotificationRead: (id: string) => void;
   clearAllNotifications: (userId: string) => void;
+  sendMessage: (msg: Omit<Message, "id" | "timestamp">) => void;
+  getConversationMessages: (conversationKey: string) => Message[];
+  addMockResult: (result: Omit<MockExamResult, "id">) => void;
+  addHomework: (hw: Omit<HomeworkAssignment, "id">) => void;
+  updateHomeworkStatus: (id: string, status: HomeworkAssignment["status"], grade?: string, feedback?: string) => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
@@ -47,6 +56,9 @@ const STORAGE_KEYS = {
   notes: "sf_notes",
   resources: "sf_resources",
   notifications: "sf_notifications",
+  messages: "sf_messages",
+  mockResults: "sf_mock_results",
+  homework: "sf_homework",
 };
 
 function load<T>(key: string, fallback: T): T {
@@ -111,30 +123,35 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>(() =>
     load<Notification[]>(STORAGE_KEYS.notifications, [])
   );
+  const [messages, setMessages] = useState<Message[]>(() =>
+    load<Message[]>(STORAGE_KEYS.messages, [])
+  );
+  const [mockResults, setMockResults] = useState<MockExamResult[]>(() =>
+    load<MockExamResult[]>(STORAGE_KEYS.mockResults, [])
+  );
+  const [homework, setHomework] = useState<HomeworkAssignment[]>(() =>
+    load<HomeworkAssignment[]>(STORAGE_KEYS.homework, [])
+  );
 
-  // Persist to localStorage whenever state changes
   useEffect(() => { save(STORAGE_KEYS.studentProfiles, studentProfiles); }, [studentProfiles]);
   useEffect(() => { save(STORAGE_KEYS.mentorProfiles, mentorProfiles); }, [mentorProfiles]);
   useEffect(() => { save(STORAGE_KEYS.sessions, sessions); }, [sessions]);
   useEffect(() => { save(STORAGE_KEYS.notes, notes); }, [notes]);
   useEffect(() => { save(STORAGE_KEYS.resources, resources); }, [resources]);
   useEffect(() => { save(STORAGE_KEYS.notifications, notifications); }, [notifications]);
+  useEffect(() => { save(STORAGE_KEYS.messages, messages); }, [messages]);
+  useEffect(() => { save(STORAGE_KEYS.mockResults, mockResults); }, [mockResults]);
+  useEffect(() => { save(STORAGE_KEYS.homework, homework); }, [homework]);
 
-  // Real-time cross-tab sync via storage event
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEYS.sessions) {
-        setSessions(load<Session[]>(STORAGE_KEYS.sessions, []));
-      }
-      if (e.key === STORAGE_KEYS.notifications) {
-        setNotifications(load<Notification[]>(STORAGE_KEYS.notifications, []));
-      }
-      if (e.key === STORAGE_KEYS.notes) {
-        setNotes(load<Note[]>(STORAGE_KEYS.notes, []));
-      }
-      if (e.key === STORAGE_KEYS.resources) {
-        setResources(load<Resource[]>(STORAGE_KEYS.resources, []));
-      }
+      if (e.key === STORAGE_KEYS.sessions) setSessions(load<Session[]>(STORAGE_KEYS.sessions, []));
+      if (e.key === STORAGE_KEYS.notifications) setNotifications(load<Notification[]>(STORAGE_KEYS.notifications, []));
+      if (e.key === STORAGE_KEYS.notes) setNotes(load<Note[]>(STORAGE_KEYS.notes, []));
+      if (e.key === STORAGE_KEYS.resources) setResources(load<Resource[]>(STORAGE_KEYS.resources, []));
+      if (e.key === STORAGE_KEYS.messages) setMessages(load<Message[]>(STORAGE_KEYS.messages, []));
+      if (e.key === STORAGE_KEYS.mockResults) setMockResults(load<MockExamResult[]>(STORAGE_KEYS.mockResults, []));
+      if (e.key === STORAGE_KEYS.homework) setHomework(load<HomeworkAssignment[]>(STORAGE_KEYS.homework, []));
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
@@ -144,12 +161,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     (userId: string) => {
       const user = AUTH_USERS.find((u) => u.id === userId);
       if (!user) return false;
-      if (user.role === "student") {
-        return studentProfiles.some((p) => p.userId === userId && p.onboardingComplete);
-      }
-      if (user.role === "mentor") {
-        return mentorProfiles.some((p) => p.userId === userId && p.onboardingComplete);
-      }
+      if (user.role === "student") return studentProfiles.some((p) => p.userId === userId && p.onboardingComplete);
+      if (user.role === "mentor") return mentorProfiles.some((p) => p.userId === userId && p.onboardingComplete);
       return true;
     },
     [studentProfiles, mentorProfiles]
@@ -169,7 +182,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       ...data,
     };
     setStudentProfiles((prev) => [...prev.filter((p) => p.userId !== currentUser.id), profile]);
-    toast({ title: "Onboarding complete! Welcome to SuccessFlow 🎉" });
+    toast({ title: "Onboarding complete! Welcome to Voices Empowered" });
   };
 
   const completeMentorOnboarding = (
@@ -182,7 +195,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       ...data,
     };
     setMentorProfiles((prev) => [...prev.filter((p) => p.userId !== currentUser.id), profile]);
-    toast({ title: "Onboarding complete! Your mentor dashboard is ready 🎉" });
+    toast({ title: "Onboarding complete! Your mentor dashboard is ready" });
   };
 
   const getStudentProfile = (userId: string) =>
@@ -198,12 +211,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setStudentProfiles((prev) =>
       prev.map((p) => (p.userId === userId ? { ...p, targets } : p))
     );
-    toast({ title: "Targets updated ✅" });
+    toast({ title: "Targets updated" });
   };
 
   const addNote = (note: Omit<Note, "id">) => {
     setNotes((prev) => [{ ...note, id: `n${Date.now()}` }, ...prev]);
-    toast({ title: "Note saved ✅" });
+    toast({ title: "Note saved" });
   };
 
   const deleteNote = (id: string) => {
@@ -219,13 +232,11 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       )
     );
 
-    // Find mentor display name for the notification message
     const mentorProfile = mentorProfiles.find((m) => m.userId === session.mentorId);
     const mentorName = mentorProfile?.displayName
       ?? AUTH_USERS.find((u) => u.id === session.mentorId)?.name
       ?? "Your mentor";
 
-    // Create notification for the student
     const notification: Notification = {
       id: `notif${Date.now()}`,
       userId: session.studentId,
@@ -236,12 +247,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setNotifications((prev) => [notification, ...prev]);
-    toast({ title: "Session scheduled ✅" });
+    toast({ title: "Session scheduled" });
   };
 
   const addResource = (resource: Omit<Resource, "id">) => {
     setResources((prev) => [{ ...resource, id: `r${Date.now()}` }, ...prev]);
-    toast({ title: "Resource added ✅" });
+    toast({ title: "Resource added" });
   };
 
   const updateStudentSubjectScore = (userId: string, subjectName: string, current: number) => {
@@ -258,7 +269,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         };
       })
     );
-    toast({ title: "Score updated ✅" });
+    toast({ title: "Score updated" });
   };
 
   const markNotificationRead = (id: string) => {
@@ -273,16 +284,48 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const sendMessage = (msg: Omit<Message, "id" | "timestamp">) => {
+    const newMsg: Message = {
+      ...msg,
+      id: `msg${Date.now()}`,
+      timestamp: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, newMsg]);
+  };
+
+  const getConversationMessages = useCallback(
+    (conversationKey: string) => messages.filter((m) => m.conversationKey === conversationKey),
+    [messages]
+  );
+
+  const addMockResult = (result: Omit<MockExamResult, "id">) => {
+    setMockResults((prev) => [{ ...result, id: `mock${Date.now()}` }, ...prev]);
+    toast({ title: "Mock result recorded" });
+  };
+
+  const addHomework = (hw: Omit<HomeworkAssignment, "id">) => {
+    setHomework((prev) => [{ ...hw, id: `hw${Date.now()}` }, ...prev]);
+    toast({ title: "Homework assigned" });
+  };
+
+  const updateHomeworkStatus = (id: string, status: HomeworkAssignment["status"], grade?: string, feedback?: string) => {
+    setHomework((prev) =>
+      prev.map((h) => (h.id === id ? { ...h, status, grade, feedback } : h))
+    );
+    toast({ title: status === "graded" ? "Homework graded" : "Homework updated" });
+  };
+
   return (
     <AppStateContext.Provider
       value={{
         theme, toggleTheme,
         currentUser, login, logout,
-        studentProfiles, mentorProfiles, sessions, notes, resources, notifications,
+        studentProfiles, mentorProfiles, sessions, notes, resources, notifications, messages, mockResults, homework,
         isOnboardingComplete, completeStudentOnboarding, completeMentorOnboarding,
         getStudentProfile, getMentorProfile,
         updateStudentTargets, addNote, deleteNote, addSession, addResource,
         updateStudentSubjectScore, markNotificationRead, clearAllNotifications,
+        sendMessage, getConversationMessages, addMockResult, addHomework, updateHomeworkStatus,
       }}
     >
       {children}

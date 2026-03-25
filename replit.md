@@ -6,17 +6,20 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 ## Artifacts
 
-### `artifacts/student-success` — SuccessFlow Student Dashboard
+### `artifacts/student-success` — Voices Empowered Student Dashboard
 
-A premium SaaS-style academic dashboard at the root path `/`. Built with React + TypeScript + Tailwind CSS v4.
+A SaaS-style academic dashboard at the root path `/`. Built with React + TypeScript + Tailwind CSS v4.
+Branded as "Voices Empowered" with a warm peach/coral/brown colour palette extracted from the VE branding images.
 
 **Features:**
-- Login page with SuccessFlow branding and demo credentials for 3 roles
+- Login page with Voices Empowered branding and demo credentials for 3 roles
 - Role-based routing: student → `/student`, mentor → `/mentor`, admin → `/admin`
 - Theme toggle (dark/light) persisted in localStorage
-- **Student Dashboard:** Hero with streak/XP, subject progress bars, achievement badges, 8-week area chart, upcoming sessions, mentor notes with key advice callout
-- **Mentor Dashboard:** Full sidebar layout with 7 distinct views (Dashboard, Subjects, Schedule, Achievements, Messages, Resources, Settings), collapsible sidebar, student-switching panel, heatmap, charts, inline-editable notes
-- **Admin Dashboard:** Stat cards, tabbed mentors/students tables with live search/filter, inline editing
+- **Student Dashboard:** Hero with streak/XP, subject progress bars, overall progression bar, mock exam results, homework tracker, achievement badges, 8-week area chart, upcoming sessions, mentor notes with key advice callout
+- **Mentor Dashboard:** Full sidebar layout (mobile responsive with hamburger menu & overlay), tabs: Dashboard, Students, Schedule, Grades & Mocks, Homework, Achievements, Messages, Resources. Working chat system (sends/receives messages via localStorage). Student data input: grades, mock exam results, homework assignment tracker with grading workflow.
+- **Admin Dashboard:** Stat cards, tabbed mentors/students tables with live search/filter
+- **Google Classroom integration:** Session booking requires a Google Classroom link. Students get notified and can join via the link.
+- **Cross-tab real-time sync:** window storage events for sessions, notifications, notes, resources, messages, mock results, homework
 
 **Mock credentials:**
 - Students: `abduljaleel/student123`, `sarah/student123`, `omar/student123`
@@ -26,9 +29,15 @@ A premium SaaS-style academic dashboard at the root path `/`. Built with React +
 **Onboarding System:**
 - Student onboarding (5 steps): Profile/year group → Subject selection → Target grades per subject → Goals (short+long term) → Complete
 - Mentor onboarding (4 steps): Profile/specialty subject → Add students (name + year group) → Add resources (title + type) → Complete
-- All data persisted to localStorage (keys: sf_student_profiles, sf_mentor_profiles, sf_sessions, sf_notes, sf_resources, sf_theme, sf_user)
+- All data persisted to localStorage (keys: sf_student_profiles, sf_mentor_profiles, sf_sessions, sf_notes, sf_resources, sf_theme, sf_user, sf_messages, sf_mock_results, sf_homework, sf_notifications)
 - First-time users are gated behind onboarding before they can see their dashboard
 - Admin users skip onboarding and go straight to their dashboard
+
+**Design:**
+- Colour palette: Warm peach/coral primary (#C06040), soft peach secondary, dark brown text, matching dark mode
+- Fonts: Inter (body) + Outfit (headings)
+- Glass-card effects, gradient buttons, responsive layout
+- Mobile: collapsible sidebar with hamburger menu and overlay
 
 **Dependencies:** recharts, framer-motion, react-confetti, date-fns, clsx, tailwind-merge
 
@@ -48,77 +57,12 @@ A premium SaaS-style academic dashboard at the root path `/`. Built with React +
 
 ```text
 artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+├── artifacts/
+│   ├── api-server/       # Express API (port 8080)
+│   ├── student-success/  # React + Vite frontend (port 23117, path /)
+│   └── mockup-sandbox/   # Component preview server
+├── packages/
+│   └── shared/           # Shared types/utilities
+├── pnpm-workspace.yaml
+└── replit.md
 ```
-
-## TypeScript & Composite Projects
-
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
-
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
-
-## Root Scripts
-
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
-
-## Packages
-
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
