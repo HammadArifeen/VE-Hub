@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Plus, Trash2, ChevronRight, ChevronLeft, GraduationCap, BookOpen, Target, Star, Sparkles } from "lucide-react";
+import { CheckCircle2, Plus, Trash2, ChevronRight, ChevronLeft, GraduationCap, BookOpen, Target, Star, Sparkles, ClipboardCheck } from "lucide-react";
 
 const STEPS = [
   { label: "Profile", icon: GraduationCap },
   { label: "Subjects", icon: BookOpen },
-  { label: "Targets", icon: Target },
+  { label: "Scores", icon: Target },
+  { label: "Mocks", icon: ClipboardCheck },
   { label: "Goals", icon: Star },
   { label: "Done!", icon: Sparkles },
 ];
@@ -22,8 +23,10 @@ const slideVariants = {
   exit: (dir: number) => ({ x: dir > 0 ? -80 : 80, opacity: 0 }),
 };
 
+type MockEntry = { subject: string; score: string; total: string; grade: string; id: string };
+
 export default function StudentOnboarding() {
-  const { currentUser, completeStudentOnboarding } = useAppState();
+  const { currentUser, completeStudentOnboarding, addMockResult } = useAppState();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
 
@@ -31,6 +34,10 @@ export default function StudentOnboarding() {
   const [yearGroup, setYearGroup] = useState("");
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [subjectTargets, setSubjectTargets] = useState<Record<string, number>>({});
+  const [subjectCurrents, setSubjectCurrents] = useState<Record<string, number>>({});
+  const [mockEntries, setMockEntries] = useState<MockEntry[]>([
+    { subject: "", score: "", total: "100", grade: "", id: `mock-${Date.now()}` },
+  ]);
   const [shortTermGoals, setShortTermGoals] = useState<string[]>(["", ""]);
   const [longTermGoals, setLongTermGoals] = useState<string[]>(["", ""]);
 
@@ -47,13 +54,31 @@ export default function StudentOnboarding() {
     );
   };
 
+  const generateHistory = (current: number): number[] => {
+    if (current === 0) return Array(8).fill(0);
+    const history: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      const variance = Math.floor((i - 3) * (current * 0.02)) + Math.floor(((i * 7 + 3) % 5) * 2 - 4);
+      history.push(Math.max(0, Math.min(100, current + variance - Math.floor((7 - i) * 1.5))));
+    }
+    return history;
+  };
+
   const handleFinish = () => {
-    const subjects: SubjectScore[] = selectedSubjects.map((name) => ({
-      name,
-      current: 0,
-      target: subjectTargets[name] ?? 75,
-      history: Array(8).fill(0),
-    }));
+    const subjects: SubjectScore[] = selectedSubjects.map((name) => {
+      const current = subjectCurrents[name] ?? 0;
+      return {
+        name,
+        current,
+        target: subjectTargets[name] ?? 75,
+        history: generateHistory(current),
+      };
+    });
+
+    const avgScore = subjects.length > 0 ? Math.round(subjects.reduce((s, sub) => s + sub.current, 0) / subjects.length) : 0;
+    const startingXp = Math.min(450, Math.floor(avgScore * 3.5) + (subjects.length * 15));
+    const startingStreak = avgScore > 50 ? Math.min(14, Math.floor(avgScore / 10)) : 0;
+
     completeStudentOnboarding({
       displayName,
       yearGroup,
@@ -63,13 +88,30 @@ export default function StudentOnboarding() {
         shortTerm: shortTermGoals.filter(Boolean),
         longTerm: longTermGoals.filter(Boolean),
       },
+      streak: startingStreak,
+      xp: startingXp,
+    });
+
+    const filledMocks = mockEntries.filter((m) => m.subject.trim() && m.score.trim());
+    filledMocks.forEach((m) => {
+      addMockResult({
+        studentId: currentUser.id,
+        mentorId: "",
+        subject: m.subject,
+        score: Number(m.score),
+        totalMarks: Number(m.total) || 100,
+        grade: m.grade,
+        date: new Date().toISOString(),
+        notes: "",
+      });
     });
   };
 
   const canNext = [
     displayName.trim().length > 0 && yearGroup.length > 0,
     selectedSubjects.length > 0,
-    selectedSubjects.every((s) => subjectTargets[s] !== undefined),
+    selectedSubjects.every((s) => subjectCurrents[s] !== undefined && subjectTargets[s] !== undefined),
+    true,
     shortTermGoals.some(Boolean) || longTermGoals.some(Boolean),
     true,
   ];
@@ -90,12 +132,12 @@ export default function StudentOnboarding() {
           <p className="text-muted-foreground mt-1">Let's personalise your student dashboard</p>
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-8">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 mb-8 flex-wrap">
           {STEPS.map((s, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => i < step && go(i)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all ${
                   i === step
                     ? "bg-primary text-white shadow-md shadow-primary/30"
                     : i < step
@@ -104,10 +146,10 @@ export default function StudentOnboarding() {
                 }`}
               >
                 {i < step ? <CheckCircle2 className="w-3 h-3" /> : <s.icon className="w-3 h-3" />}
-                {s.label}
+                <span className="hidden sm:inline">{s.label}</span>
               </button>
               {i < STEPS.length - 1 && (
-                <div className={`h-px w-6 transition-colors ${i < step ? "bg-success" : "bg-border"}`} />
+                <div className={`h-px w-3 sm:w-6 transition-colors ${i < step ? "bg-success" : "bg-border"}`} />
               )}
             </div>
           ))}
@@ -121,7 +163,7 @@ export default function StudentOnboarding() {
             />
           </div>
 
-          <div className="p-8 min-h-[360px] flex flex-col">
+          <div className="p-6 sm:p-8 min-h-[360px] flex flex-col">
             <AnimatePresence mode="wait" custom={dir}>
               <motion.div
                 key={step}
@@ -199,38 +241,63 @@ export default function StudentOnboarding() {
 
                 {step === 2 && (
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold mb-1">Set your target grades</h2>
+                    <h2 className="text-2xl font-bold mb-1">Where are you at?</h2>
                     <p className="text-muted-foreground mb-6">
-                      Enter your target percentage for each subject
+                      Enter your current score and target for each subject
                     </p>
-                    <div className="space-y-4 max-h-[260px] overflow-y-auto pr-1">
+                    <div className="space-y-4 max-h-[280px] overflow-y-auto pr-1">
                       {selectedSubjects.map((sub) => {
-                        const val = subjectTargets[sub] ?? "";
+                        const current = subjectCurrents[sub] ?? "";
+                        const target = subjectTargets[sub] ?? "";
                         return (
-                          <div key={sub} className="flex items-center gap-4">
-                            <div className="flex-1">
-                              <div className="flex justify-between mb-1.5">
-                                <span className="font-medium text-sm">{sub}</span>
-                                <span className="text-sm text-primary font-semibold">
-                                  {val ? `${val}%` : "Not set"}
+                          <div key={sub} className="p-3 rounded-xl border border-border/50 bg-background/50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-sm">{sub}</span>
+                              {current && target && (
+                                <span className="text-xs text-muted-foreground">
+                                  {current}% → {target}%
                                 </span>
-                              </div>
-                              <Progress value={Number(val) || 0} className="h-1.5" />
+                              )}
                             </div>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={100}
-                              value={val}
-                              onChange={(e) =>
-                                setSubjectTargets((prev) => ({
-                                  ...prev,
-                                  [sub]: Math.min(100, Math.max(1, Number(e.target.value))),
-                                }))
-                              }
-                              placeholder="e.g. 85"
-                              className="w-20 h-9 text-center text-sm"
-                            />
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1">
+                                <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Current %</label>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={100}
+                                  value={current}
+                                  onChange={(e) =>
+                                    setSubjectCurrents((prev) => ({
+                                      ...prev,
+                                      [sub]: Math.min(100, Math.max(0, Number(e.target.value))),
+                                    }))
+                                  }
+                                  placeholder="e.g. 65"
+                                  className="h-9 text-sm mt-1"
+                                />
+                              </div>
+                              <div className="flex-1">
+                                <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Target %</label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={100}
+                                  value={target}
+                                  onChange={(e) =>
+                                    setSubjectTargets((prev) => ({
+                                      ...prev,
+                                      [sub]: Math.min(100, Math.max(1, Number(e.target.value))),
+                                    }))
+                                  }
+                                  placeholder="e.g. 85"
+                                  className="h-9 text-sm mt-1"
+                                />
+                              </div>
+                            </div>
+                            {current !== "" && target !== "" && (
+                              <Progress value={Number(current)} className="h-1.5 mt-2" />
+                            )}
                           </div>
                         );
                       })}
@@ -239,6 +306,74 @@ export default function StudentOnboarding() {
                 )}
 
                 {step === 3 && (
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-1">Any recent mock exams?</h2>
+                    <p className="text-muted-foreground mb-6">
+                      Add your recent mock exam results — skip if none
+                    </p>
+                    <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
+                      {mockEntries.map((mock, idx) => (
+                        <div key={mock.id} className="p-3 rounded-xl border border-border/50 bg-background/50">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm font-semibold text-muted-foreground">{idx + 1}.</span>
+                            <span className="text-sm font-medium flex-1">Mock Exam</span>
+                            {mockEntries.length > 1 && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                                onClick={() => setMockEntries((prev) => prev.filter((m) => m.id !== mock.id))}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            <div className="col-span-2">
+                              <Input
+                                value={mock.subject}
+                                onChange={(e) => setMockEntries((prev) => prev.map((m) => m.id === mock.id ? { ...m, subject: e.target.value } : m))}
+                                placeholder="Subject"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            <div>
+                              <Input
+                                type="number"
+                                value={mock.score}
+                                onChange={(e) => setMockEntries((prev) => prev.map((m) => m.id === mock.id ? { ...m, score: e.target.value } : m))}
+                                placeholder="Score"
+                                className="h-8 text-sm"
+                                min={0}
+                              />
+                            </div>
+                            <div>
+                              <Input
+                                value={mock.grade}
+                                onChange={(e) => setMockEntries((prev) => prev.map((m) => m.id === mock.id ? { ...m, grade: e.target.value } : m))}
+                                placeholder="Grade"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-3 gap-2 text-xs"
+                      onClick={() => setMockEntries((prev) => [...prev, { subject: "", score: "", total: "100", grade: "", id: `mock-${Date.now()}` }])}
+                    >
+                      <Plus className="w-3 h-3" /> Add mock result
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      You can skip this step if you haven't taken any mocks yet.
+                    </p>
+                  </div>
+                )}
+
+                {step === 4 && (
                   <div className="flex-1">
                     <h2 className="text-2xl font-bold mb-1">What are your goals?</h2>
                     <p className="text-muted-foreground mb-6">Set goals to stay motivated and on track</p>
@@ -325,13 +460,13 @@ export default function StudentOnboarding() {
                   </div>
                 )}
 
-                {step === 4 && (
+                {step === 5 && (
                   <div className="flex-1 flex flex-col items-center justify-center text-center gap-6">
                     <div className="w-20 h-20 rounded-full bg-gradient-premium flex items-center justify-center shadow-xl shadow-primary/30">
                       <Sparkles className="w-10 h-10 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-bold mb-2">You're all set, {displayName}! 🎉</h2>
+                      <h2 className="text-3xl font-bold mb-2">You're all set, {displayName}!</h2>
                       <p className="text-muted-foreground max-w-md">
                         Your dashboard is personalised and ready. Head to your dashboard to start tracking your academic journey.
                       </p>
@@ -360,13 +495,13 @@ export default function StudentOnboarding() {
                 <ChevronLeft className="w-4 h-4" /> Back
               </Button>
 
-              {step < 4 ? (
+              {step < 5 ? (
                 <Button
                   onClick={() => go(step + 1)}
                   disabled={!canNext[step]}
                   className="bg-gradient-premium text-white gap-2"
                 >
-                  Continue <ChevronRight className="w-4 h-4" />
+                  {step === 3 ? "Skip / Continue" : "Continue"} <ChevronRight className="w-4 h-4" />
                 </Button>
               ) : (
                 <Button

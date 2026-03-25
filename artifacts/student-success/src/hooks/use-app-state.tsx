@@ -24,7 +24,7 @@ interface AppStateContextType {
   homework: HomeworkAssignment[];
 
   isOnboardingComplete: (userId: string) => boolean;
-  completeStudentOnboarding: (data: Omit<StudentProfile, "userId" | "streak" | "xp" | "maxXp" | "achievements" | "onboardingComplete">) => void;
+  completeStudentOnboarding: (data: Omit<StudentProfile, "userId" | "maxXp" | "achievements" | "onboardingComplete"> & { streak?: number; xp?: number }) => void;
   completeMentorOnboarding: (data: Omit<MentorProfile, "userId" | "onboardingComplete">) => void;
 
   getStudentProfile: (userId: string) => StudentProfile | undefined;
@@ -169,13 +169,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
 
   const completeStudentOnboarding = (
-    data: Omit<StudentProfile, "userId" | "streak" | "xp" | "maxXp" | "achievements" | "onboardingComplete">
+    data: Omit<StudentProfile, "userId" | "maxXp" | "achievements" | "onboardingComplete"> & { streak?: number; xp?: number }
   ) => {
     if (!currentUser) return;
     const profile: StudentProfile = {
       userId: currentUser.id,
-      streak: 0,
-      xp: 0,
+      streak: data.streak ?? 0,
+      xp: data.xp ?? 0,
       maxXp: 500,
       achievements: ALL_ACHIEVEMENTS.map((a) => ({ ...a })),
       onboardingComplete: true,

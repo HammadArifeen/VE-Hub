@@ -27,8 +27,8 @@ Branded as "Voices Empowered" with a warm peach/coral/brown colour palette extra
 - Admins: `Musab/CEO123`, `Hammad/Admin123`
 
 **Onboarding System:**
-- Student onboarding (5 steps): Profile/year group → Subject selection → Target grades per subject → Goals (short+long term) → Complete
-- Mentor onboarding (4 steps): Profile/specialty subject → Add students (name + year group) → Add resources (title + type) → Complete
+- Student onboarding (6 steps): Profile/year group → Subject selection → Current scores + target grades per subject → Mock exam results (optional) → Goals (short+long term) → Complete. Generates 8-week history data from current scores, calculates initial streak/XP from average performance.
+- Mentor onboarding (6 steps): Profile/specialty subject → Add students (name + year group) → Add notes about students (with key advice flag) → Schedule initial sessions (optional) → Add resources (title + type) → Complete. Notes and sessions are persisted immediately so dashboard is populated from day one.
 - All data persisted to localStorage (keys: sf_student_profiles, sf_mentor_profiles, sf_sessions, sf_notes, sf_resources, sf_theme, sf_user, sf_messages, sf_mock_results, sf_homework, sf_notifications)
 - First-time users are gated behind onboarding before they can see their dashboard
 - Admin users skip onboarding and go straight to their dashboard
